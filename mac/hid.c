@@ -376,7 +376,7 @@ static int get_string_property(IOHIDDeviceRef device, CFStringRef prop, wchar_t 
 
 	buf[0] = 0;
 
-	if (str) {
+	if (str && CFGetTypeID(str) == CFStringGetTypeID()) {
 		CFIndex str_len = CFStringGetLength(str);
 		CFRange range;
 		CFIndex used_buf_len;
@@ -769,7 +769,7 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 		}
 		cur_dev = tmp;
 
-		/* move the pointer to the tail of returnd list */
+		/* move the pointer to the tail of returned list */
 		while (cur_dev->next != NULL) {
 			cur_dev = cur_dev->next;
 		}
