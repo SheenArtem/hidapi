@@ -711,7 +711,8 @@ static void hid_internal_get_info(const wchar_t* interface_path, struct hid_devi
 		goto end;
 	/* parent_id may looks like: USB\VID_046D&PID_C52B&MI_00\6&E50734A&0&0000 and we need "6&E50734A" */
 	/* Get last part of parent_id seperated by "\" */	
-	token = strtok(dev->parent_id, delim, &ptr);
+	parent_phy_addr = strdup(dev->parent_id);
+	token = strtok(parent_phy_addr, delim, &ptr);
 	while (token) {
 		parent_phy_addr = token;
 		token = strtok(NULL, delim, &ptr);
