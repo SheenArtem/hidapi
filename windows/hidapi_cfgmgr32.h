@@ -51,8 +51,6 @@ typedef WCHAR* DEVNODEID_W, * DEVINSTID_W;
 #define CM_GET_DEVICE_INTERFACE_LIST_PRESENT (0x00000000)
 
 typedef CONFIGRET(__stdcall* CM_Locate_DevNodeW_)(PDEVINST pdnDevInst, DEVINSTID_W pDeviceID, ULONG ulFlags);
-typedef CONFIGRET(__stdcall* CM_Get_Device_ID_Size_)(PULONG pulLen, DEVINST dnDevInst, ULONG ulFlags);
-typedef CONFIGRET(__stdcall* CM_Get_Device_IDW_)(DEVINST dnDevInst, PWSTR Buffer, ULONG BufferLen,ULONG ulFlags);
 typedef CONFIGRET(__stdcall* CM_Get_Parent_)(PDEVINST pdnDevInst, DEVINST dnDevInst, ULONG ulFlags);
 typedef CONFIGRET(__stdcall* CM_Get_DevNode_PropertyW_)(DEVINST dnDevInst, CONST DEVPROPKEY* PropertyKey, DEVPROPTYPE* PropertyType, PBYTE PropertyBuffer, PULONG PropertyBufferSize, ULONG ulFlags);
 typedef CONFIGRET(__stdcall* CM_Get_Device_Interface_PropertyW_)(LPCWSTR pszDeviceInterface, CONST DEVPROPKEY* PropertyKey, DEVPROPTYPE* PropertyType, PBYTE PropertyBuffer, PULONG PropertyBufferSize, ULONG ulFlags);
@@ -66,7 +64,7 @@ DEFINE_DEVPROPKEY(DEVPKEY_Device_InstanceId, 0x78c34fc8, 0x104a, 0x4aca, 0x9e, 0
 DEFINE_DEVPROPKEY(DEVPKEY_Device_HardwareIds, 0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 3); // DEVPROP_TYPE_STRING_LIST
 DEFINE_DEVPROPKEY(DEVPKEY_Device_CompatibleIds, 0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 4); // DEVPROP_TYPE_STRING_LIST
 DEFINE_DEVPROPKEY(DEVPKEY_Device_ContainerId, 0x8c7ed206, 0x3f8a, 0x4827, 0xb3, 0xab, 0xae, 0x9e, 0x1f, 0xae, 0xfc, 0x6c, 2); // DEVPROP_TYPE_GUID
-
+DEFINE_DEVPROPKEY(DEVPKEY_Device_DriverInfPath, 0xa8b865dd, 0x2e3d, 0x4094, 0xad, 0x97, 0xe5, 0x93, 0xa7, 0xc, 0x75, 0xd6, 5);     // DEVPROP_TYPE_STRING
 // from propkey.h
 DEFINE_PROPERTYKEY(PKEY_DeviceInterface_Bluetooth_DeviceAddress, 0x2BD67D8B, 0x8BEB, 0x48D5, 0x87, 0xE0, 0x6C, 0xDA, 0x34, 0x28, 0x04, 0x0A, 1); // DEVPROP_TYPE_STRING
 DEFINE_PROPERTYKEY(PKEY_DeviceInterface_Bluetooth_Manufacturer, 0x2BD67D8B, 0x8BEB, 0x48D5, 0x87, 0xE0, 0x6C, 0xDA, 0x34, 0x28, 0x04, 0x0A, 4); // DEVPROP_TYPE_STRING

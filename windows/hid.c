@@ -97,8 +97,6 @@ static HidD_SetNumInputBuffers_ HidD_SetNumInputBuffers;
 
 static CM_Locate_DevNodeW_ CM_Locate_DevNodeW = NULL;
 static CM_Get_Parent_ CM_Get_Parent = NULL;
-static CM_Get_Device_IDW_ CM_Get_Device_IDW = NULL;
-static CM_Get_Device_ID_Size_ CM_Get_Device_ID_Size = NULL;
 static CM_Get_DevNode_PropertyW_ CM_Get_DevNode_PropertyW = NULL;
 static CM_Get_Device_Interface_PropertyW_ CM_Get_Device_Interface_PropertyW = NULL;
 static CM_Get_Device_Interface_List_SizeW_ CM_Get_Device_Interface_List_SizeW = NULL;
@@ -183,8 +181,6 @@ static int lookup_functions()
 
 	RESOLVE(cfgmgr32_lib_handle, CM_Locate_DevNodeW);
 	RESOLVE(cfgmgr32_lib_handle, CM_Get_Parent);
-	RESOLVE(cfgmgr32_lib_handle, CM_Get_Device_IDW);
-	RESOLVE(cfgmgr32_lib_handle, CM_Get_Device_ID_Size);
 	RESOLVE(cfgmgr32_lib_handle, CM_Get_DevNode_PropertyW);
 	RESOLVE(cfgmgr32_lib_handle, CM_Get_Device_Interface_PropertyW);
 	RESOLVE(cfgmgr32_lib_handle, CM_Get_Device_Interface_List_SizeW);
@@ -627,7 +623,8 @@ static void hid_internal_get_ble_info(struct hid_device_info* dev, DEVINST dev_n
 
 static void hid_internal_get_info(const wchar_t* interface_path, struct hid_device_info* dev)
 {
-	wchar_t *device_id = NULL, *parent_id = NULL, *compatible_ids = NULL;
+	wchar_t *device_id = NULL, *parent_id = NULL, *driver_inf = NULL, *compatible_ids = NULL;
+	char *ptr = NULL, *parent_phy_addr = NULL, *token = NULL, *delim = L"\\";
 	ULONG DeviceInstancePathLength = 0;
 	CONFIGRET cr;
 	DEVINST dev_node;
@@ -646,26 +643,6 @@ static void hid_internal_get_info(const wchar_t* interface_path, struct hid_devi
 	cr = CM_Get_Parent(&dev_node, dev_node, 0);
 	if (cr != CR_SUCCESS) {
 		printf("Error 0x%08x retrieving device parent.\r\n", cr);
-	}
-
-	/* Get parent device id */
-	cr = CM_Get_Device_ID_Size(&DeviceInstancePathLength, dev_node,	0);
-	if (cr != CR_SUCCESS) {
-		printf("Error 0x%08x retrieving device instance path size.\r\n", cr);
-	}
-	else {
-		parent_id = (PWSTR)malloc((DeviceInstancePathLength + 1) * sizeof(WCHAR));
-		if (parent_id != NULL) {
-			cr = CM_Get_Device_IDW(dev_node, parent_id, DeviceInstancePathLength, 0);
-			if (cr != CR_SUCCESS) {
-				printf("Error 0x%08x retrieving device instance path.\r\n", cr);
-			}
-			else {
-				parent_id[DeviceInstancePathLength] = L'\0';
-				free(dev->parent_id);
-				dev->parent_id = hid_internal_UTF16toUTF8(parent_id);
-			}
-		}
 	}
 
 	/* Get the compatible ids from parent devnode */
@@ -715,7 +692,50 @@ static void hid_internal_get_info(const wchar_t* interface_path, struct hid_devi
 			break;
 		}
 	}
+
+	/* Get parent device id */	
+	parent_id = hid_internal_get_devnode_property(dev_node, &DEVPKEY_Device_InstanceId, DEVPROP_TYPE_STRING);
+	if (!parent_id)
+		goto end;
+	free(dev->parent_id);
+	dev->parent_id = hid_internal_UTF16toUTF8(parent_id);
+
+	/* Extract parent_phy_addr from parent_id*/
+	free(dev->parent_phy_addr);
+	/* Check if parent device is a hub.
+	   If so, set parent_phy_addr to NULL that indicate this HID device is independant.
+	*/
+	driver_inf = hid_internal_get_devnode_property(dev_node, &DEVPKEY_Device_DriverInfPath, DEVPROP_TYPE_STRING);
+	hid_internal_towupper(driver_inf);
+	if (wcsstr(driver_inf, L"HUB") != NULL)
+		goto end;
+	/* parent_id may looks like: USB\VID_046D&PID_C52B&MI_00\6&E50734A&0&0000 and we need "6&E50734A" */
+	/* Get last part of parent_id seperated by "\" */	
+	token = strtok(dev->parent_id, delim, &ptr);
+	while (token) {
+		parent_phy_addr = token;
+		token = strtok(NULL, delim, &ptr);
+	}
+	if (!parent_phy_addr)
+		goto end;
+	
+	/* Now we have: "6&E50734A&0&0000" and only need the part before 2nd "&" as "6&E50734A" */
+	ptr = strchr(parent_phy_addr, '&');
+	if (!ptr)
+		goto end;
+	ptr = strchr(ptr + 1, '&');
+	if (!ptr)
+		goto end;
+
+	size_t size = strlen(parent_phy_addr) - strlen(ptr);
+	free(dev->parent_phy_addr);
+	dev->parent_phy_addr = (char*)malloc((size + 1) * sizeof(char));
+	dev->parent_phy_addr[size] = '\0';
+	strncpy(dev->parent_phy_addr, parent_phy_addr, size * sizeof(char));
+
 end:
+	free(parent_id);
+	free(driver_inf);
 	free(device_id);
 	free(compatible_ids);
 }
@@ -900,6 +920,7 @@ void  HID_API_EXPORT HID_API_CALL hid_free_enumeration(struct hid_device_info *d
 		free(d->manufacturer_string);
 		free(d->product_string);
 		free(d->parent_id);
+		free(d->parent_phy_addr);
 		free(d);
 		d = next;
 	}

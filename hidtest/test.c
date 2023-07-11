@@ -79,6 +79,7 @@ void print_device(struct hid_device_info *cur_dev) {
 	printf("  Usage (page): 0x%hx (0x%hx)\n", cur_dev->usage, cur_dev->usage_page);
 	printf("  Bus type: %d (%s)\n", cur_dev->bus_type, hid_bus_name(cur_dev->bus_type));
 	printf("  Parent ID: %s\n", cur_dev->parent_id);
+	printf("  Parent Physical Addr: %s\n", cur_dev->parent_phy_addr);
 	printf("\n");
 }
 

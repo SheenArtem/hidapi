@@ -163,8 +163,13 @@ extern "C" {
 			wchar_t *manufacturer_string;
 			/** Product string */
 			wchar_t *product_string;
-			/** Parent Device ID */
+			/** Parent device ID */
 			char* parent_id;
+			/** Extracted from parent_id. 
+				If we found same parent_phy_addr from different hid_device_info, they may be the same device physically.
+				If it's NULL, this hid device is independent
+			*/
+			char* parent_phy_addr;
 			/** Usage Page for this Device/Interface
 			    (Windows/Mac/hidraw only) */
 			unsigned short usage_page;
