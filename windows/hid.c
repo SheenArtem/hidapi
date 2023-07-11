@@ -108,6 +108,37 @@ static HMODULE hid_lib_handle = NULL;
 static HMODULE cfgmgr32_lib_handle = NULL;
 static BOOLEAN hidapi_initialized = FALSE;
 
+//Move static function to the place before callers
+static char* hid_internal_UTF16toUTF8(const wchar_t* src)
+{
+	char* dst = NULL;
+	int len = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, src, -1, NULL, 0, NULL, NULL);
+	if (len) {
+		dst = (char*)calloc(len, sizeof(char));
+		if (dst == NULL) {
+			return NULL;
+		}
+		WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, src, -1, dst, len, NULL, NULL);
+	}
+
+	return dst;
+}
+
+static wchar_t* hid_internal_UTF8toUTF16(const char* src)
+{
+	wchar_t* dst = NULL;
+	int len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, -1, NULL, 0);
+	if (len) {
+		dst = (wchar_t*)calloc(len, sizeof(wchar_t));
+		if (dst == NULL) {
+			return NULL;
+		}
+		MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, -1, dst, len);
+	}
+
+	return dst;
+}
+
 static void free_library_handles()
 {
 	if (hid_lib_handle)
@@ -623,20 +654,16 @@ static void hid_internal_get_info(const wchar_t* interface_path, struct hid_devi
 		printf("Error 0x%08x retrieving device instance path size.\r\n", cr);
 	}
 	else {
-		parent_id = (PWSTR)malloc(DeviceInstancePathLength * sizeof(WCHAR));
+		parent_id = (PWSTR)malloc((DeviceInstancePathLength + 1) * sizeof(WCHAR));
 		if (parent_id != NULL) {
-			cr = CM_Get_Device_IDW(dev_node,
-				parent_id,
-				DeviceInstancePathLength,
-				0);
+			cr = CM_Get_Device_IDW(dev_node, parent_id, DeviceInstancePathLength, 0);
 			if (cr != CR_SUCCESS) {
 				printf("Error 0x%08x retrieving device instance path.\r\n", cr);
 			}
 			else {
+				parent_id[DeviceInstancePathLength] = L'\0';
 				free(dev->parent_id);
-				dev->parent_id = parent_id;
-				//printf("Parent device instance path is %ls", parent_id);
-				//printf("\r\n");
+				dev->parent_id = hid_internal_UTF16toUTF8(parent_id);
 			}
 		}
 	}
@@ -691,36 +718,6 @@ static void hid_internal_get_info(const wchar_t* interface_path, struct hid_devi
 end:
 	free(device_id);
 	free(compatible_ids);
-}
-
-static char *hid_internal_UTF16toUTF8(const wchar_t *src)
-{
-	char *dst = NULL;
-	int len = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, src, -1, NULL, 0, NULL, NULL);
-	if (len) {
-		dst = (char*)calloc(len, sizeof(char));
-		if (dst == NULL) {
-			return NULL;
-		}
-		WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, src, -1, dst, len, NULL, NULL);
-	}
-
-	return dst;
-}
-
-static wchar_t *hid_internal_UTF8toUTF16(const char *src)
-{
-	wchar_t *dst = NULL;
-	int len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, -1, NULL, 0);
-	if (len) {
-		dst = (wchar_t*)calloc(len, sizeof(wchar_t));
-		if (dst == NULL) {
-			return NULL;
-		}
-		MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, -1, dst, len);
-	}
-
-	return dst;
 }
 
 static struct hid_device_info *hid_internal_get_device_info(const wchar_t *path, HANDLE handle)

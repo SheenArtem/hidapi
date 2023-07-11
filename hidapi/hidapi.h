@@ -164,7 +164,7 @@ extern "C" {
 			/** Product string */
 			wchar_t *product_string;
 			/** Parent Device ID */
-			wchar_t* parent_id;
+			char* parent_id;
 			/** Usage Page for this Device/Interface
 			    (Windows/Mac/hidraw only) */
 			unsigned short usage_page;
